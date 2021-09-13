@@ -7,6 +7,7 @@ Message Property PermadeathResurrectionDialog  Auto
 string CHARACTERS_FOLDER = "Data\\Permadeath\\Characters"
 string THIS_CHARACTER_FILENAME
 string THIS_CHARACTER_ID
+Form MessageText
 
 ; When the mod is run for the
 ; first time (for THIS CHARACTER)
@@ -14,6 +15,7 @@ event OnInit()
     Debug.Trace("Mod Installed")
     InitializeCharacterID()
     InitializeThisCharacter()
+    MessageText = Game.GetFormFromFile(0xd64, "Permadeath.esp")
 endEvent
 
 function InitializeCharacterID()
@@ -50,6 +52,7 @@ event OnPlayerLoadGame()
         int yes = 0
         int no = 1
         Debug.Trace("Opening the dialog")
+        MessageText.SetName("haha this is really a fork")
         int result = PermadeathResurrectionDialog.Show()
         if result == yes
             int playerData = GetPlayerData()
