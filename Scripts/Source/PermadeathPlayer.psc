@@ -11,7 +11,7 @@ string THIS_CHARACTER_ID
 ; When the mod is run for the
 ; first time (for THIS CHARACTER)
 event OnInit()
-    Debug.MessageBox("Mod Installed")
+    Debug.Trace("Mod Installed")
     InitializeCharacterID()
     InitializeThisCharacter()
 endEvent
@@ -33,28 +33,31 @@ function InitializeThisCharacter()
 endFunction
 
 event OnDeath(Actor akKiller)
-    Debug.MessageBox("Player died")
-    int playerData = JValue.readFromFile(THIS_CHARACTER_FILENAME)
+    Debug.Trace("Player died")
+    int playerData = GetPlayerData()
     JMap.setInt(playerData, "dead", 1)
-    JValue.writeToFile(playerData, THIS_CHARACTER_FILENAME)
+    SavePlayerData(playerData)
     ; Set the time that they died
 endEvent
 
 event OnPlayerLoadGame()
-    Debug.MessageBox("Checking if Dead... " + IsDead)
-    if IsDead
+    Debug.Trace("Checking if Dead... " + IsDead)
+    if IsPermadead
+        Debug.QuitGame()
+    elseIf IsDead
         FadeToBlackAndHold()
         RegisterForSingleUpdate(1.0)
         int yes = 0
         int no = 1
-        Debug.MessageBox("Opening the dialog")
+        Debug.Trace("Opening the dialog")
         int result = PermadeathResurrectionDialog.Show()
         if result == yes
-            int playerData = JValue.readFromFile(THIS_CHARACTER_FILENAME)
+            int playerData = GetPlayerData()
             JMap.setInt(playerData, "dead", 0)
-            JValue.writeToFile(playerData, THIS_CHARACTER_FILENAME)
+            SavePlayerData(playerData)
             FadeFromBlack()
         else
+            IsPermadead = true 
             GetActorReference().Kill()
             Game.QuitToMainMenu()
         endIf
@@ -68,8 +71,28 @@ bool property IsDead
     endFunction
 endProperty
 
+bool property IsPermadead
+    bool function get()
+        int playerData = GetPlayerData()
+        return JMap.getInt(playerData, "permadead") == 1
+    endFunction
+    function set(bool value)
+        int playerData = GetPlayerData()
+        if value
+            JMap.setInt(playerData, "permadead", 1)
+        else
+            JMap.setInt(playerData, "permadead", 0)
+        endIf
+        SavePlayerData(playerData)
+    endFunction
+endProperty
+
 int function GetPlayerData()
     return JValue.readFromFile(THIS_CHARACTER_FILENAME)
+endFunction
+
+function SavePlayerData(int playerData)
+    JValue.writeToFile(playerData, THIS_CHARACTER_FILENAME)
 endFunction
 
 ; Fades the screen to black and holds it there.  Call FadeFromBlack() to reverse it.
