@@ -8,6 +8,10 @@ string CHARACTERS_FOLDER = "Data\\Permadeath\\Characters"
 string THIS_CHARACTER_FILENAME
 string THIS_CHARACTER_ID
 Form MessageText
+int startHour
+
+GlobalVariable Property GameDaysPassed  Auto  
+GlobalVariable Property GameHour  Auto  
 
 ; When the mod is run for the
 ; first time (for THIS CHARACTER)
@@ -16,6 +20,7 @@ event OnInit()
     InitializeCharacterID()
     InitializeThisCharacter()
     MessageText = Game.GetFormFromFile(0xd64, "Permadeath.esp")
+    startHour = GameHour.GetValue() as int
 endEvent
 
 function InitializeCharacterID()
@@ -35,9 +40,18 @@ function InitializeThisCharacter()
 endFunction
 
 event OnDeath(Actor akKiller)
+    Game.PlayBink("permadeathvideo.bik", false, true, true)
+
+    int gameDays = GameDaysPassed.GetValue() as int
+    int gameHours = (GameHour.GetValue() as int) - startHour
+
     Debug.Trace("Player died")
     int playerData = GetPlayerData()
     JMap.setInt(playerData, "dead", 1)
+    JMap.setInt(playerData, "level", GetActorReference().GetLevel())
+    JMap.setInt(playerData, "days", gameDays)
+    JMap.setInt(playerData, "hours", gameHours)
+
     SavePlayerData(playerData)
     ; Set the time that they died
 endEvent
@@ -45,14 +59,18 @@ endEvent
 event OnPlayerLoadGame()
     Debug.Trace("Checking if Dead... " + IsDead)
     if IsPermadead
-        Debug.QuitGame()
+        Debug.MessageBox(GetActorReference().GetActorBase().GetName() + " is dead")
+        Game.QuitToMainMenu()
     elseIf IsDead
         FadeToBlackAndHold()
         RegisterForSingleUpdate(1.0)
         int yes = 0
         int no = 1
         Debug.Trace("Opening the dialog")
-        MessageText.SetName("haha this is really a fork")
+        int gameDays = GameDaysPassed.GetValue() as int
+        int gameHours = (GameHour.GetValue() as int) - startHour
+        int level = GetActorReference().GetLevel()
+        MessageText.SetName(GetPlayerPermadeathDialogSummary(gameDays, gameHours, level))
         int result = PermadeathResurrectionDialog.Show()
         if result == yes
             int playerData = GetPlayerData()
@@ -61,6 +79,7 @@ event OnPlayerLoadGame()
             FadeFromBlack()
         else
             IsPermadead = true 
+            FadeFromBlack()
             GetActorReference().Kill()
             Game.QuitToMainMenu()
         endIf
@@ -96,6 +115,14 @@ endFunction
 
 function SavePlayerData(int playerData)
     JValue.writeToFile(playerData, THIS_CHARACTER_FILENAME)
+endFunction
+
+string function GetPlayerPermadeathDialogSummary(int gameDays, int gameHours, int level)
+    string summary = GetActorReference().GetActorBase().GetName() + " is dead.\n\n"
+    summary += "You lasted " + gameDays + " days, " + gameHours + " hours\n\n"
+    summary += "Your character died at level " + level + "\n\n"
+    summary += "Would you like to resurrect " + GetActorReference().GetActorBase().GetName()
+    return summary
 endFunction
 
 ; Fades the screen to black and holds it there.  Call FadeFromBlack() to reverse it.
